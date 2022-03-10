@@ -1,0 +1,190 @@
+{
+    "_comment": "WAS(Tomcat) Image base AMI using Amazon Linux",
+    "builders": [
+        {
+            "type": "amazon-ebs",
+            "source_ami": "ami-0094965d55b3bb1ff",
+            "vpc_id": "vpc-0d5bb6874231ad81f",
+            "subnet_id": "subnet-0d4549e26e599a40d",
+            "instance_type": "t3.small",
+            "ssh_interface": "public_ip",
+            "iam_instance_profile": "",
+            "associate_public_ip_address":"true",
+            "ssh_username": "ec2-user",
+            "ami_name": "shw-ami-packer-standard-was-image-{{timestamp}}",
+            "ami_description": "Test Was Image base AMI using Amazon Linux",
+            "tags": {
+                "company": "",
+                "production": "",
+                "cost_division": "",
+                "cost_center": "",
+                "project": "",
+                "service": "",
+                "owner": "",
+                "created": "packer",
+                "base_ami_id": "{{ .SourceAMI }}",
+                "aase_ami_name": "{{ .SourceAMIName }}"
+            },
+            "ami_users": [
+                "111111111111"
+            ]
+        }
+    ],
+    "provisioners": [
+        {
+            "type": "shell",
+            "inline": [
+                "sudo groupadd -g 9999 sysadm",
+                "sudo groupadd -g 5001 noco",
+                "sudo groupadd -g 101 dba",
+                "sudo useradd -u 9999 -g 9999 -c 'System Administrator' itscuser",
+                "sudo useradd -u 5001 -g 5001 -c 'System user for controlling commands' nocouser",
+                "sudo usermod -G wheel itscuser"
+            ]
+        },
+        {
+            "type": "shell",
+            "inline": [
+                "sudo mv /etc/localtime /etc/localtime.orig",
+                "sudo ln -s /usr/share/zoneinfo/Asia/Seoul /etc/localtime",
+                "sudo mkdir -p /engn/apache /engn/download",
+                "sudo mkdir -p /data",
+                "sudo mkdir -p /sorc",
+                "sudo mkdir -p /logs"
+            ]
+        },
+        {
+            "type": "shell",
+            "inline": [
+                "sudo cp /etc/sysctl.d/99-sysctl.conf /etc/sysctl.d/99-sysctl.conf.org",
+                "sudo bash -c 'echo \"vm.swappiness=10\" >> /etc/sysctl.d/99-sysctl.conf'",
+                "sudo bash -c 'echo \"vm.vfs_cache_pressure=10000\" >> /etc/sysctl.d/99-sysctl.conf'",
+                "sudo bash -c 'echo \"kernel.pid_max=65536\" >> /etc/sysctl.d/99-sysctl.conf'",
+                "sudo bash -c 'echo \"net.ipv4.tcp_keepalive_time=60\" >> /etc/sysctl.d/99-keepalive.conf'",
+                "sudo bash -c 'echo \"net.ipv4.tcp_keepalive_intvl=10\" >> /etc/sysctl.d/99-keepalive.conf'",
+                "sudo bash -c 'echo \"net.ipv4.tcp_keepalive_probes=3\" >> /etc/sysctl.d/99-keepalive.conf'",
+                "sudo bash -c 'echo \"net.ipv4.ip_forward=0\" >> /etc/sysctl.d/99-keepalive.conf'",
+                "sudo bash -c 'echo \"net.ipv4.conf.default.accept_source_route=0\" >> /etc/sysctl.d/99-keepalive.conf'",
+                "sudo sysctl --system"
+            ]
+        },
+        {
+            "type": "shell",
+            "inline": [
+                "sudo bash -c 'echo \"*               soft    nofile    8192\" >> /etc/security/limits.conf'",
+                "sudo bash -c 'echo \"*               hard    nofile    65535\" >> /etc/security/limits.conf'",
+                "sudo bash -c 'echo \"tmax            soft    nofile    16384\" >> /etc/security/limits.conf'",
+                "sudo bash -c 'echo \"tmax            hard    nofile    16384\" >> /etc/security/limits.conf'",
+                "sudo bash -c 'echo \"*               soft    nproc     8192\" >>  /etc/security/limits.conf'",
+                "sudo bash -c 'echo \"*               hard    nproc     65535\" >> /etc/security/limits.conf'",
+                "sudo bash -c 'echo \"tmax            soft    nproc     16384\" >> /etc/security/limits.conf'",
+                "sudo bash -c 'echo \"tmax            hard    nproc     16384\" >> /etc/security/limits.conf'",
+                "sudo bash -c 'echo \"*               soft    stack     10240\" >> /etc/security/limits.conf'",
+                "sudo bash -c 'echo \"*               hard    stack     32768\" >> /etc/security/limits.conf'",
+                "sudo bash -c 'echo \"tmax            soft    statc     20480\" >> /etc/security/limits.conf'",
+                "sudo bash -c 'echo \"tmax            hard    stack     20480\" >> /etc/security/limits.conf'",
+                "sudo bash -c 'echo \"*               soft    core      unlimited\" >> /etc/security/limits.conf'",
+                "sudo bash -c 'echo \"tmax            soft    core      unlimited\" >> /etc/security/limits.conf'"
+            ]
+        },
+        {
+            "type": "shell",
+            "inline": [
+                "sudo cp /etc/profile /etc/profile.org",
+                "sudo bash -c 'echo \"TMOUT=900; export TMOUT\" >> /etc/profile'",
+                "sudo bash -c 'echo \"root\" >> /etc/cron.allow'",
+                "sudo bash -c 'echo \"ec2-user\" >> /etc/cron.allow'",
+                "sudo bash -c 'echo \"itscuser\" >> /etc/cron.deny'"
+            ]
+        },
+        {
+            "type": "shell",
+            "inline": [
+                "sudo cp /etc/pam.d/password-auth /etc/pam.d/password-auth.org",
+                "sudo cp /etc/pam.d/system-auth /etc/pam.d/system-auth.org",
+                "sudo cp /etc/pam.d/su /etc/pam.d/su.org",
+                "sudo cp /etc/pam.d/login /etc/pam.d/login.org",
+                "sudo bash -c 'echo \"auth        required      pam_faillock.so preauth silent audit deny=3 unlock_time=600\" >> /etc/pam.d/password-auth'",
+                "sudo bash -c 'echo \"auth        [default=die] pam_faillock.so authfail audit deny=3 unlock_time=600\" >> /etc/pam.d/password-auth'",
+                "sudo bash -c 'echo \"account     required      pam_faillock.so\" >> /etc/pam.d/password-auth'",
+                "sudo bash -c 'echo \"account     required      pam_tally2.so deny=5 unlock_time=120 no_magic_root\" >> /etc/pam.d/password-auth'",
+                "sudo bash -c 'echo \"auth        required      pam_faillock.so preauth silent audit deny=3 unlock_time=600\" >> /etc/pam.d/system-auth'",
+                "sudo bash -c 'echo \"auth        [default=die] pam_faillock.so authfail audit deny=3 unlock_time=600\" >> /etc/pam.d/system-auth'",
+                "sudo bash -c 'echo \"account     required      pam_faillock.so\" >> /etc/pam.d/system-auth'",
+                "sudo bash -c 'echo \"auth        required      pam_tally2.so deny=5 unlock_time=120 no_magic_root\" >> /etc/pam.d/system-auth'",
+                "sudo bash -c 'echo \"auth        required      pam_wheel.so use_uid\" >> /etc/pam.d/su'",
+                "sudo bash -c 'echo \"auth        required      pam_securetty.so\" >> /etc/pam.d/login'"
+            ]
+        },
+        {
+            "type": "shell",
+            "inline": [
+                "sudo cp /etc/login.defs /etc/login.defs.org",
+                "sudo cp /etc/security/pwquality.conf /etc/security/pwquality.conf.org",
+                "sudo sed 's|# minlen = 9|minlen = 8|g' -i /etc/security/pwquality.conf",
+                "sudo sed 's|# lcredit|lcredit|g' -i /etc/security/pwquality.conf",
+                "sudo sed 's|# ucredit|ucredit|g' -i /etc/security/pwquality.conf",
+                "sudo sed 's|# dcredit|dcredit|g' -i /etc/security/pwquality.conf",
+                "sudo sed 's|# ocredit|ocredit|g' -i /etc/security/pwquality.conf",
+                "sudo sed 's|PASS_MAX_DAYS\t99999|PASS_MAX_DAYS   90|g' -i /etc/login.defs",
+                "sudo sed 's|PASS_MIN_DAYS\t0|PASS_MIN_DAYS    1|g' -i /etc/login.defs",
+                "sudo sed 's|PASS_MIN_LEN\t5|PASS_MIN_LEN    8|g' -i /etc/login.defs",
+                "sudo sed 's|PASS_WARN_AGE\t7|PASS_WARN_AGE    10|g' -i /etc/login.defs",
+                "sudo bash -c 'echo \"FAILLOG_ENAB   yes\" >> /etc/login.defs'",
+                "sudo bash -c 'echo \"LOG_UNKFAIL_ENAB   yes\" >> /etc/login.defs'",
+                "sudo bash -c 'echo \"LOG_OK_LOGINS   yes\" >> /etc/login.defs'",
+                "sudo bash -c 'echo \"LOGIN_RETRIES   3\" >> /etc/login.defs'",
+                "sudo bash -c 'echo \"LOGIN_TIMEOUT   20\" >> /etc/login.defs'"
+            ]
+        },
+        {
+            "type": "shell",
+            "inline": [
+                "sudo chmod 750 /etc/cron.daily/man-db.cron",
+                "sudo chmod 750 /etc/cron.hourly/0anacron",
+                "sudo chmod 640 /etc/at.deny",
+                "sudo chmod 640 /etc/rsyslog.conf",
+                "sudo chmod 640 /var/log/wtmp",
+                "sudo chmod 755 /usr/bin/newgrp",
+                "sudo chmod 755 /sbin/unix_chkpwd",
+                "sudo chmod 755 /usr/bin/at",
+                "sudo chgrp wheel /usr/bin/su",
+                "sudo chgrp wheel /bin/su",
+                "sudo chmod 4750 /usr/bin/su",
+                "sudo chmod 4750 /bin/su"
+            ]
+        },
+        {
+            "type": "shell",
+            "inline": [
+                "sudo bash -c 'echo \"################################\" > /etc/issue.net'",
+                "sudo bash -c 'echo \"#         Warning!!!           #\" >> /etc/issue.net'",
+                "sudo bash -c 'echo \"################################\" >> /etc/issue.net'",
+                "sudo bash -c 'echo \"This system is for authrized users only.\" >> /etc/issue.net'",
+                "sudo cp /etc/ssh/sshd_config /etc/ssh/sshd_config.org",
+                "sudo sed 's|#Banner none|Banner \/etc\/issue.net|g' -i /etc/ssh/sshd_config"
+            ]
+        },
+        {
+            "type": "shell",
+            "inline": [
+                "sudo yum update -y",
+                "sudo yum install -y java-1.8.0-openjdk-devel"
+            ]
+        },
+        {
+            "type": "shell",
+            "inline": [
+                "cd /engn/download ; sudo wget https://archive.apache.org/dist/tomcat/tomcat-8/v8.5.66/bin/apache-tomcat-8.5.66.tar.gz",
+                "cd /engn/download ; sudo tar zxf apache-tomcat-8.5.66.tar.gz",
+                "cd /engn/download ; sudo mv apache-tomcat-8.5.66 /engn/tomcat"
+            ]
+        },
+        {
+            "type": "shell",
+            "inline": [
+                "cd /engn/download ; sudo rm -f apache-tomcat-8.5.66.tar.gz"
+            ]
+        }
+    ]
+}
