@@ -3,7 +3,7 @@
     "builders": [
         {
             "type": "amazon-ebs",
-            "source_ami": "ami-00192a6b2a7a94846",
+            "source_ami": "ami-00192a6b2a7a948466",
             "vpc_id": "vpc-5607953d",
             "subnet_id": "subnet-22f77849",
             "instance_type": "t3.small",
